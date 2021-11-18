@@ -1,0 +1,15 @@
+// Please add a pixel_id of abc123 to the facebook integration object
+{
+  "apps":{
+    "integrations": {
+      "facebook":{
+        "active": true
+      },
+      "tiktok": {
+        "account_id": "123",
+        "active": true,
+      }
+    }
+  },
+  "pages":{}
+}
