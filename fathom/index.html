@@ -55,13 +55,41 @@
   .dots i.miss{background:#3a2430}
   .dots i.t1{background:var(--t1)}.dots i.t2{background:var(--t2)}.dots i.t3{background:var(--t3)}.dots i.t4{background:var(--t4)}.dots i.t5{background:var(--t5)}.dots i.t6{background:var(--t6)}
 
-  /* gauge */
-  .stage{display:grid;grid-template-columns:1fr 34px;gap:12px}
-  .gauge{position:relative;border-radius:10px;background:linear-gradient(180deg,#0d2a52 0%,#071a38 30%,#040f24 60%,#02060f 100%);border:1px solid var(--line);overflow:hidden}
-  .gauge .tick{position:absolute;left:0;right:0;border-top:1px dashed rgba(138,160,196,.25);font-size:8px;color:var(--dim);padding-left:3px;letter-spacing:.02em}
-  .gauge .diver{position:absolute;left:50%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;background:var(--aqua);box-shadow:0 0 14px var(--aqua);transition:top 1.1s cubic-bezier(.3,.9,.3,1)}
-  .gauge .diver::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:1px solid rgba(79,209,255,.5);animation:ping 1.6s infinite}
-  @keyframes ping{0%{transform:scale(.6);opacity:.9}100%{transform:scale(1.8);opacity:0}}
+  /* dive scene */
+  .ocean{position:relative;height:170px;border-radius:14px;overflow:hidden;border:1px solid var(--line);margin-bottom:12px;background:#07203f;box-shadow:inset 0 0 40px rgba(0,0,0,.35)}
+  .world{position:absolute;left:0;right:0;top:0;height:1700px;transition:transform 1.4s cubic-bezier(.25,.8,.3,1);will-change:transform;
+    background:linear-gradient(180deg,#1a6fb5 0px,#0f4f8f 150px,#0a3a70 300px,#073059 500px,#051f3d 700px,#03132a 900px,#020b1a 1100px,#01060f 1300px,#000308 1600px)}
+  .world .rays{position:absolute;left:0;right:0;top:0;height:260px;background:repeating-linear-gradient(100deg,rgba(255,255,255,.07) 0 10px,transparent 10px 42px);mix-blend-mode:screen;animation:rays 7s linear infinite;pointer-events:none}
+  @keyframes rays{from{background-position:0 0}to{background-position:120px 0}}
+  .world .tick{position:absolute;left:0;right:0;border-top:1px dashed rgba(170,200,240,.22);font-size:9px;color:rgba(170,200,240,.6);padding:2px 6px;letter-spacing:.06em;font-weight:600}
+  .world .tick.zone{border-top:1px solid rgba(170,200,240,.35);font-size:10px;color:rgba(200,225,255,.85);text-transform:uppercase}
+  .world .tick.zone span{float:right;opacity:.6;text-transform:none;letter-spacing:0}
+  .world .floor{position:absolute;left:0;right:0;top:1440px;height:260px;background:linear-gradient(180deg,transparent,#0a0806 40px,#120d08);border-top:2px solid #2a2016}
+  .snow{position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(rgba(255,255,255,.35) 1px,transparent 1.5px),radial-gradient(rgba(255,255,255,.2) 1px,transparent 1.5px);background-size:90px 90px,140px 140px;background-position:0 0,40px 60px;animation:snow 9s linear infinite;opacity:.6}
+  @keyframes snow{from{background-position:0 0,40px 60px}to{background-position:-20px 90px,20px 200px}}
+  .critter{position:absolute;opacity:.85}
+  .critter.drift{animation:drift 12s ease-in-out infinite alternate}
+  .critter.drift2{animation:drift 9s ease-in-out infinite alternate-reverse}
+  @keyframes drift{from{transform:translateX(0) translateY(0)}to{transform:translateX(26px) translateY(-8px)}}
+  .jelly{animation:jelly 3s ease-in-out infinite}
+  @keyframes jelly{0%,100%{transform:translateY(0) scaleX(1)}50%{transform:translateY(-10px) scaleX(.92)}}
+  .lure{animation:lure 1.6s ease-in-out infinite}
+  @keyframes lure{0%,100%{opacity:.5}50%{opacity:1}}
+  .diverfish{position:absolute;left:50%;top:48%;width:64px;height:40px;margin-left:-32px;margin-top:-20px;transition:transform 1.2s cubic-bezier(.3,.8,.3,1);transform:rotate(0deg);filter:drop-shadow(0 0 8px rgba(79,209,255,.6))}
+  .diverfish.diving{transform:rotate(38deg) translateY(6px)}
+  .diverfish svg{width:100%;height:100%;overflow:visible}
+  .diverfish .tail{transform-origin:14px 20px;animation:tail .5s ease-in-out infinite alternate}
+  .diverfish.diving .tail{animation-duration:.18s}
+  @keyframes tail{from{transform:rotate(-14deg)}to{transform:rotate(14deg)}}
+  .diverfish .fin{transform-origin:34px 26px;animation:tail .7s ease-in-out infinite alternate-reverse}
+  .bub{position:absolute;border-radius:50%;border:1px solid rgba(255,255,255,.7);background:rgba(255,255,255,.12);animation:bub 1.6s ease-out forwards;pointer-events:none}
+  @keyframes bub{from{transform:translate(0,0) scale(.4);opacity:.9}to{transform:translate(var(--dx),-120px) scale(1.1);opacity:0}}
+  .depthflash{position:absolute;left:50%;top:22%;transform:translateX(-50%);font-family:Fraunces,serif;font-weight:800;font-size:22px;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.6);animation:flash 1.6s ease-out forwards;pointer-events:none;white-space:nowrap}
+  @keyframes flash{0%{opacity:0;transform:translate(-50%,10px)}15%{opacity:1;transform:translate(-50%,0)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-14px)}}
+  .ocean .vignette{position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 -30px 40px rgba(0,0,0,.45),inset 0 20px 30px rgba(0,0,0,.15)}
+  .ocean .depthlbl{position:absolute;right:10px;top:8px;font-family:Fraunces,serif;font-weight:800;font-size:18px;color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.7);letter-spacing:-.01em}
+  .ocean .depthlbl small{font-family:Inter;font-size:10px;font-weight:600;margin-left:3px;opacity:.85}
+  .ocean .zonelbl{position:absolute;left:10px;top:8px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.8);text-shadow:0 1px 6px rgba(0,0,0,.7)}
 
   /* timer */
   .timer{display:flex;align-items:center;gap:10px;margin-bottom:10px}
@@ -209,8 +237,24 @@
     </div>
     <div class="dots" id="dots"></div>
 
-    <div class="stage">
-      <div class="card" style="margin:0">
+    <div class="ocean" id="ocean">
+      <div class="world" id="world"></div>
+      <div class="snow"></div>
+      <div class="diverfish" id="fish">
+        <svg viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg">
+          <g class="tail"><path d="M14 20 L2 8 L6 20 L2 32 Z" fill="#2a9df4"/></g>
+          <ellipse cx="34" cy="20" rx="22" ry="12" fill="#4fd1ff"/>
+          <path d="M22 11 Q34 2 44 11 Z" fill="#2a9df4"/>
+          <g class="fin"><path d="M30 26 Q36 36 44 28 Z" fill="#2a9df4"/></g>
+          <path d="M40 10 Q46 20 40 30" stroke="#8ae5ff" stroke-width="2" fill="none" opacity=".8"/>
+          <circle cx="48" cy="17" r="3.2" fill="#031022"/><circle cx="49" cy="16" r="1.1" fill="#fff"/>
+        </svg>
+      </div>
+      <div class="vignette"></div>
+      <div class="zonelbl" id="zoneLbl">Sunlight zone</div>
+      <div class="depthlbl"><span id="oceanDepth">0</span><small>m</small></div>
+    </div>
+    <div class="card" style="margin:0">
         <div id="genLoading" class="loading"><span class="bubble"></span><span class="bubble"></span><span class="bubble"></span> Generating prompts…</div>
 
         <div id="preview" class="preview hidden">
@@ -233,8 +277,6 @@
           <button class="btn ghost hidden" id="btnNext" style="margin-top:12px">Next prompt →</button>
         </div>
       </div>
-      <div class="gauge" id="gauge"><div class="diver" id="diver" style="top:0"></div></div>
-    </div>
     <div id="gameErr" class="warn hidden" style="margin-top:12px"></div>
   </section>
 
@@ -336,8 +378,59 @@
     $('themes').appendChild(b);
   });
   $('tierTable').innerHTML = TIERS.slice(1).map(t=>`<span>${t.emoji}</span><span><b class="c${t.n}">${t.name}</b><div class="d">${t.desc}</div></span><span class="pt"><b>${t.pts}</b> pts · ${t.pts*10} m</span>`).join('');
-  // gauge ticks
-  [1000,2500,4000,6000].forEach(d => { const e=document.createElement('div'); e.className='tick'; e.style.top=(d/MAXD*100)+'%'; e.textContent=(d/1000)+'k'; $('gauge').appendChild(e); });
+  // ---------- dive scene ----------
+  const PXM = 0.2; // px per metre (7000 m = 1400 px)
+  const ZONES = [[0,'Sunlight zone'],[1000,'Twilight zone'],[2500,'Midnight zone'],[4000,'Abyssal zone'],[6000,'Hadal zone']];
+  const zoneName = d => ZONES.slice().reverse().find(z=>d>=z[0])[1];
+  (function buildWorld(){
+    const w = $('world'); let h = '<div class="rays"></div>';
+    for (let d=500; d<=MAXD; d+=500) {
+      const z = ZONES.find(z=>z[0]===d);
+      h += `<div class="tick${z?' zone':''}" style="top:${d*PXM}px">${z?z[1]:''}<span>${d.toLocaleString()} m</span></div>`;
+    }
+    const ic = (top,left,cls,svg) => `<div class="critter ${cls}" style="top:${top}px;left:${left}%">${svg}</div>`;
+    const small = c => `<svg width="26" height="14" viewBox="0 0 26 14"><path d="M6 7 L0 1 L2 7 L0 13 Z" fill="${c}"/><ellipse cx="15" cy="7" rx="10" ry="5.5" fill="${c}"/><circle cx="21" cy="6" r="1.2" fill="#031022"/></svg>`;
+    const jelly = `<div class="jelly"><svg width="30" height="44" viewBox="0 0 30 44"><path d="M3 16 Q15 -4 27 16 Z" fill="rgba(169,139,255,.7)"/><path d="M6 16 q2 14 0 26 M12 16 q-2 14 1 26 M18 16 q2 14 -1 26 M24 16 q-2 14 0 26" stroke="rgba(169,139,255,.6)" fill="none" stroke-width="1.5"/></svg></div>`;
+    const angler = `<svg width="54" height="40" viewBox="0 0 54 40"><path d="M14 22 L2 12 L5 22 L2 32 Z" fill="#2b1d33"/><ellipse cx="30" cy="24" rx="18" ry="12" fill="#3a2545"/><path d="M34 14 q6 -12 12 -6" stroke="#5a3f6a" fill="none" stroke-width="2"/><circle class="lure" cx="47" cy="8" r="3.5" fill="#ffd166" style="filter:drop-shadow(0 0 6px #ffd166)"/><path d="M38 24 l3 5 l3 -5 l3 5 l3 -5" stroke="#fff" fill="none" stroke-width="1.2"/><circle cx="40" cy="20" r="2" fill="#ffd166"/></svg>`;
+    const squid = `<svg width="22" height="70" viewBox="0 0 22 70"><path d="M11 0 L21 26 L1 26 Z" fill="rgba(255,159,107,.7)"/><rect x="4" y="22" width="14" height="22" rx="6" fill="rgba(255,159,107,.7)"/><path d="M6 44 q-3 14 0 26 M11 44 q0 14 0 26 M16 44 q3 14 0 26" stroke="rgba(255,159,107,.6)" fill="none" stroke-width="1.5"/><circle cx="8" cy="32" r="1.5" fill="#fff"/><circle cx="14" cy="32" r="1.5" fill="#fff"/></svg>`;
+    const worms = `<svg width="60" height="40" viewBox="0 0 60 40"><path d="M8 40 q2 -20 0 -30 M18 40 q-2 -20 0 -34 M30 40 q2 -22 0 -32 M42 40 q-2 -18 0 -30 M52 40 q2 -22 0 -28" stroke="#c8c0b0" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="8" cy="10" r="3" fill="#ff5e5e"/><circle cx="18" cy="6" r="3" fill="#ff5e5e"/><circle cx="30" cy="8" r="3" fill="#ff5e5e"/><circle cx="42" cy="10" r="3" fill="#ff5e5e"/><circle cx="52" cy="12" r="3" fill="#ff5e5e"/></svg>`;
+    h += ic(40,12,'drift',small('#ffd166')) + ic(70,70,'drift2',small('#5ef2b6')) + ic(140,30,'drift',small('#ff9f6b')) + ic(190,78,'drift2',small('#4fd1ff'));
+    h += ic(290,18,'drift',jelly) + ic(380,65,'drift2',jelly) + ic(470,40,'drift',jelly);
+    h += ic(620,60,'drift2',angler) + ic(760,15,'drift',squid) + ic(900,55,'drift2',angler);
+    h += ic(1060,20,'drift',squid) + ic(1160,70,'drift2',angler);
+    h += '<div class="floor"></div>' + ic(1400,10,'',worms) + ic(1405,65,'',worms);
+    w.innerHTML = h;
+  })();
+  let shownDepth = 0, countTimer = null;
+  function setScene(depth, animate) {
+    const w = $('world');
+    const t = -Math.min(depth, MAXD) * PXM;
+    if (!animate) w.style.transition = 'none';
+    w.style.transform = `translateY(${t}px)`;
+    if (!animate) { void w.offsetHeight; w.style.transition = ''; }
+    $('zoneLbl').textContent = zoneName(depth);
+    $('oceanDepth').textContent = depth.toLocaleString();
+  }
+  function diveTo(depth, gained) {
+    const fish = $('fish'), ocean = $('ocean');
+    fish.classList.add('diving');
+    setScene(depth, true);
+    // bubbles
+    for (let i=0;i<10;i++) setTimeout(()=>{
+      const b = document.createElement('div'); b.className='bub';
+      const sz = 3+Math.random()*7; b.style.width=b.style.height=sz+'px';
+      b.style.left=(45+Math.random()*12)+'%'; b.style.top=(44+Math.random()*10)+'%';
+      b.style.setProperty('--dx',(Math.random()*40-20)+'px');
+      ocean.appendChild(b); setTimeout(()=>b.remove(),1700);
+    }, i*90);
+    if (gained) { const f = document.createElement('div'); f.className='depthflash'; f.textContent = '↓ '+gained.toLocaleString()+' m'; ocean.appendChild(f); setTimeout(()=>f.remove(),1700); }
+    // count the number up
+    const from = shownDepth, to = depth, t0 = performance.now();
+    if (countTimer) cancelAnimationFrame(countTimer);
+    const step = now => { const k = Math.min(1,(now-t0)/1300); const e = 1-Math.pow(1-k,3); const v = Math.round(from+(to-from)*e); $('depthNum').textContent = v.toLocaleString(); $('oceanDepth').textContent = v.toLocaleString(); if (k<1) countTimer = requestAnimationFrame(step); else shownDepth = to; };
+    countTimer = requestAnimationFrame(step);
+    setTimeout(()=>fish.classList.remove('diving'), 1300);
+  }
   $('btnHow').onclick = () => show('how');
   $('btnBack').onclick = () => show('home');
   $('btnStart').onclick = startDive;
@@ -450,10 +543,11 @@ Return ONLY JSON: {"valid":true|false,"canonical":"...","aliases":["..."],"ambig
     if (state && state.phase==='play') resumeTimer();
   }
 
-  function renderBoard() {
+  function renderBoard(gained) {
     $('scoreNum').textContent = state.score;
-    $('depthNum').textContent = (state.score*10).toLocaleString();
-    $('diver').style.top = Math.min(100, state.score*10/MAXD*100) + '%';
+    const depth = state.score*10;
+    if (gained) diveTo(depth, gained);
+    else { shownDepth = depth; $('depthNum').textContent = depth.toLocaleString(); setScene(depth, false); }
   }
   function renderDots() {
     $('dots').innerHTML = Array.from({length:7},(_,k)=>{
@@ -551,7 +645,7 @@ Return ONLY JSON: {"valid":true|false,"canonical":"...","aliases":["..."],"ambig
       const T = TIERS[sc.tier];
       state.score += T.pts;
       state.answers[state.i] = { prompt:p.prompt, answer:val, canonical:j.canonical||val, tier:sc.tier, pts:T.pts, krillion:j.krillion, f:sc.f, ratio:sc.ratio, basis:sc.basis };
-      renderBoard();
+      renderBoard(T.pts*10);
       $('btnPass').classList.add('hidden');
       // ranked pool for the data panel
       const pool = p.poolF.slice().sort((a,b)=>b.f-a.f);
