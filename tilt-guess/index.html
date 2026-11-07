@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f0f14">
+<title>Tilt & Guess</title>
+<style>
+  :root{
+    --bg:#0f0f14; --card:#1a1a24; --ink:#f5f5f7; --muted:#9a9aae;
+    --accent:#ffb020; --good:#2ecc71; --bad:#ff5252; --blue:#4da3ff;
+    --sa-top:env(safe-area-inset-top,0px); --sa-bot:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;overflow:hidden;overscroll-behavior:none}
+  body{padding-top:var(--sa-top);padding-bottom:var(--sa-bot)}
+  .screen{position:absolute;inset:0;display:none;flex-direction:column}
+  .screen.active{display:flex}
+  /* ---------- Home ---------- */
+  #home{padding:18px 16px calc(16px + var(--sa-bot));overflow-y:auto;gap:14px}
+  h1{margin:6px 0 0;font-size:34px;letter-spacing:-.5px}
+  h1 span{color:var(--accent)}
+  .sub{color:var(--muted);margin:0 0 6px;font-size:14px}
+  .section{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:10px 0 6px}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .cat{background:var(--card);border:1px solid #2a2a38;border-radius:16px;padding:14px 12px;min-height:74px;display:flex;flex-direction:column;justify-content:center;cursor:pointer;transition:transform .08s}
+  .cat:active{transform:scale(.96)}
+  .cat .em{font-size:24px;line-height:1}
+  .cat .nm{font-weight:700;margin-top:6px;font-size:15px}
+  .cat .ct{color:var(--muted);font-size:12px;margin-top:2px}
+  .cat.random{grid-column:1/-1;background:linear-gradient(135deg,#ffb020,#ff5e3a);color:#1a1000;border:none;min-height:84px}
+  .cat.random .ct{color:#4a2a00}
+  .cat.live{border-color:#2d4a6b}
+  .cat.live .nm::after{content:" LIVE";font-size:9px;color:var(--blue);vertical-align:middle;letter-spacing:.1em}
+  .row{display:flex;gap:8px;align-items:center}
+  input[type=text]{flex:1;background:var(--card);border:1px solid #2a2a38;color:var(--ink);border-radius:12px;padding:12px 14px;font-size:16px;outline:none;user-select:text;-webkit-user-select:text}
+  .btn{background:var(--accent);color:#1a1000;border:none;border-radius:12px;padding:12px 18px;font-weight:800;font-size:15px;cursor:pointer}
+  .btn.ghost{background:var(--card);color:var(--ink);border:1px solid #2a2a38}
+  .btn.big{font-size:20px;padding:18px 28px;border-radius:18px}
+  .settings{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:14px;color:var(--muted)}
+  .pill{background:var(--card);border:1px solid #2a2a38;border-radius:999px;padding:7px 12px;color:var(--ink);cursor:pointer;font-size:13px}
+  .pill.on{background:var(--accent);color:#1a1000;border-color:var(--accent)}
+  /* ---------- Stage (rotates to landscape) ---------- */
+  #stage{position:absolute;inset:0;overflow:hidden}
+  #rot{position:absolute;left:0;top:0;transform-origin:0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:16px}
+  .word{font-size:min(14vmax,96px);font-weight:900;line-height:1.05;letter-spacing:-.02em;word-break:break-word;max-width:94%;text-shadow:0 4px 30px rgba(0,0,0,.35)}
+  .hint{font-size:min(3.2vmax,20px);color:rgba(255,255,255,.75);margin-top:14px;max-width:85%}
+  .timer{position:absolute;top:12px;left:50%;transform:translateX(-50%);font-size:min(5vmax,34px);font-weight:800;opacity:.85;font-variant-numeric:tabular-nums}
+  .score{position:absolute;top:12px;right:16px;font-size:min(3.5vmax,22px);font-weight:700;opacity:.8}
+  .catlabel{position:absolute;top:14px;left:16px;font-size:min(2.6vmax,16px);opacity:.6;text-transform:uppercase;letter-spacing:.1em}
+  .tapzones{position:absolute;inset:0;display:none}
+  .tapzones.on{display:flex}
+  .tapzones div{flex:1;display:flex;align-items:flex-end;justify-content:center;padding-bottom:18px;font-weight:800;font-size:min(3vmax,18px);opacity:.55}
+  .tapzones .pass{color:#fff}
+  .tapzones .ok{color:#fff}
+  .bigmsg{font-size:min(10vmax,72px);font-weight:900}
+  .flash-good{background:var(--good)!important}
+  .flash-bad{background:var(--bad)!important}
+  .flash-neutral{background:#1f3a8a!important}
+  #stage{background:#1f3a8a;transition:background .15s}
+  .quit{position:absolute;bottom:12px;left:16px;background:rgba(0,0,0,.3);color:#fff;border:none;border-radius:999px;padding:8px 14px;font-size:13px;z-index:3}
+  /* ---------- Results ---------- */
+  #results{padding:18px 16px calc(16px + var(--sa-bot));overflow-y:auto}
+  .big{font-size:56px;font-weight:900;margin:4px 0}
+  .list{display:flex;flex-direction:column;gap:6px;margin:12px 0 18px}
+  .item{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:12px;padding:10px 12px}
+  .item .mark{font-size:18px;width:24px;text-align:center}
+  .item.good .mark{color:var(--good)} .item.bad .mark{color:var(--bad)}
+  .toast{position:fixed;left:50%;bottom:calc(24px + var(--sa-bot));transform:translateX(-50%);background:#2a2a38;color:#fff;padding:10px 16px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+  .toast.show{opacity:1}
+  .loader{display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:12px;color:var(--muted)}
+  .spin{width:34px;height:34px;border:4px solid #2a2a38;border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- ================= HOME ================= -->
+<section id="home" class="screen active">
+  <h1>Tilt <span>&amp;</span> Guess</h1>
+  <p class="sub">Hold the phone on your forehead. Tilt <b>down</b> = got it, tilt <b>up</b> = pass. Your friends give the clues.</p>
+
+  <div class="settings">
+    <span>Round:</span>
+    <span class="pill tlen" data-s="60">60s</span>
+    <span class="pill tlen" data-s="90">90s</span>
+    <span class="pill tlen" data-s="120">120s</span>
+    <span class="pill" id="soundPill">🔊 Sound</span>
+    <span class="pill" id="tapPill">👆 Tap mode</span>
+  </div>
+
+  <div class="section">Custom topic (powered by Datamuse)</div>
+  <div class="row">
+    <input type="text" id="customTopic" placeholder="e.g. kitchen, pirates, Taylor Swift…" autocomplete="off">
+    <button class="btn" id="customGo">Go</button>
+  </div>
+
+  <div class="section">Pick a deck</div>
+  <div class="grid" id="catGrid"></div>
+  <div class="section">Live decks (public APIs)</div>
+  <div class="grid" id="liveGrid"></div>
+  <div class="section">Built-in decks</div>
+  <div class="grid" id="builtinGrid"></div>
+  <p class="sub" style="margin-top:14px">v1 · Built-in bank of <span id="bankCount">…</span> cards. Live decks pull fresh cards from Open Trivia DB, PokéAPI, REST Countries, TheMealDB, TheCocktailDB, Dog CEO and Datamuse when the network allows; otherwise they fall back to the built-in bank.</p>
+</section>
+
+<!-- ================= STAGE ================= -->
+<section id="play" class="screen">
+  <div id="stage">
+    <div id="rot">
+      <div class="catlabel" id="catLabel"></div>
+      <div class="timer" id="timer"></div>
+      <div class="score" id="scoreLbl"></div>
+      <div class="word" id="word"></div>
+      <div class="hint" id="hint"></div>
+      <div class="tapzones" id="tapzones"><div class="pass">◀ PASS (tap)</div><div class="ok">GOT IT (tap) ▶</div></div>
+      <button class="quit" id="quitBtn">✕ Quit</button>
+    </div>
+  </div>
+</section>
+
+<!-- ================= RESULTS ================= -->
+<section id="results" class="screen">
+  <div class="sub" id="resCat"></div>
+  <div class="big" id="resScore"></div>
+  <div class="sub" id="resSub"></div>
+  <div class="list" id="resList"></div>
+  <div class="row">
+    <button class="btn big" id="againBtn">Play again</button>
+    <button class="btn ghost big" id="homeBtn">Decks</button>
+  </div>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===================== BUILT-IN KNOWLEDGE BASE ===================== */
+const BANK = {
+"Animals":{em:"🦁",items:"Lion,Tiger,Elephant,Giraffe,Zebra,Kangaroo,Koala,Panda,Penguin,Dolphin,Shark,Octopus,Jellyfish,Crocodile,Alligator,Hippopotamus,Rhinoceros,Cheetah,Leopard,Gorilla,Chimpanzee,Orangutan,Sloth,Armadillo,Platypus,Flamingo,Peacock,Ostrich,Eagle,Owl,Bat,Hedgehog,Porcupine,Raccoon,Skunk,Moose,Reindeer,Camel,Llama,Alpaca,Walrus,Seal,Otter,Beaver,Squirrel,Chipmunk,Hamster,Ferret,Tortoise,Chameleon,Iguana,Komodo Dragon,Lobster,Crab,Seahorse,Hummingbird,Toucan,Parrot,Wolf,Fox,Grizzly Bear,Polar Bear,Meerkat,Hyena,Warthog,Bison,Narwhal,Manatee,Pufferfish,Praying Mantis,Tarantula,Scorpion,Butterfly,Ladybug,Firefly"},
+"Movies":{em:"🎬",items:"Titanic,Jaws,The Godfather,Jurassic Park,Forrest Gump,The Matrix,Inception,Home Alone,Toy Story,Finding Nemo,The Lion King,Frozen,Shrek,Back to the Future,Ghostbusters,Top Gun,Rocky,Gladiator,Braveheart,The Shining,Psycho,E.T.,Avatar,Star Wars,Indiana Jones,Pulp Fiction,Fight Club,The Dark Knight,Wall-E,Up,Ratatouille,Monsters Inc,Grease,Dirty Dancing,Mean Girls,Clueless,Legally Blonde,The Notebook,La La Land,Interstellar,The Hangover,Superbad,Step Brothers,Anchorman,Elf,Mrs. Doubtfire,Jumanji,The Goonies,Karate Kid,Mission Impossible,Die Hard,Terminator,Alien,The Exorcist,Scream,Get Out,Black Panther,Barbie,Oppenheimer,Dune,Wicked,Moana,Coco,Encanto,Minions,Despicable Me,Kung Fu Panda,Madagascar,Cast Away,Speed,Twister,Mamma Mia,Pitch Perfect"},
+"TV Shows":{em:"📺",items:"Friends,The Office,Seinfeld,Breaking Bad,Game of Thrones,Stranger Things,The Simpsons,SpongeBob SquarePants,Grey's Anatomy,Lost,The Sopranos,The Bachelor,Survivor,Jeopardy,Wheel of Fortune,Saturday Night Live,The Walking Dead,Succession,Ted Lasso,Schitt's Creek,Parks and Recreation,Brooklyn Nine-Nine,How I Met Your Mother,The Big Bang Theory,Modern Family,Family Guy,South Park,Rick and Morty,The Mandalorian,Squid Game,Bridgerton,The Crown,Severance,White Lotus,Yellowstone,Euphoria,Ozark,Mad Men,House,Scrubs,ER,24,Dexter,The X-Files,Twin Peaks,Cheers,Frasier,Full House,Fresh Prince of Bel-Air,Baywatch,MasterChef,Shark Tank,American Idol,The Voice,Love Island,Abbott Elementary,Only Murders in the Building,The Bear,Wednesday,Bluey"},
+"Celebrities":{em:"⭐",items:"Taylor Swift,Beyoncé,Oprah Winfrey,Tom Hanks,Dwayne Johnson,Leonardo DiCaprio,Brad Pitt,Jennifer Lopez,Kim Kardashian,Elon Musk,Barack Obama,Will Smith,Ryan Reynolds,Zendaya,Timothée Chalamet,Ariana Grande,Drake,Rihanna,Lady Gaga,Adele,Ed Sheeran,Justin Bieber,Selena Gomez,Keanu Reeves,Morgan Freeman,Meryl Streep,Julia Roberts,Sandra Bullock,George Clooney,Tom Cruise,Harrison Ford,Arnold Schwarzenegger,Sylvester Stallone,Jackie Chan,Jack Black,Adam Sandler,Jim Carrey,Steve Carell,Kevin Hart,Chris Pratt,Chris Hemsworth,Scarlett Johansson,Margot Robbie,Emma Stone,Jennifer Aniston,Gordon Ramsay,Martha Stewart,Snoop Dogg,Bad Bunny,Billie Eilish,Olivia Rodrigo,Harry Styles,Dolly Parton,Shaquille O'Neal,LeBron James,Serena Williams,Lionel Messi,Cristiano Ronaldo,Tiger Woods,Simone Biles"},
+"Musicians & Bands":{em:"🎸",items:"The Beatles,Queen,Elvis Presley,Michael Jackson,Madonna,Prince,Nirvana,Metallica,AC/DC,Rolling Stones,Led Zeppelin,Pink Floyd,Bob Marley,Bruce Springsteen,Bon Jovi,Coldplay,U2,Radiohead,Foo Fighters,Red Hot Chili Peppers,Green Day,Blink-182,Backstreet Boys,NSYNC,Spice Girls,Destiny's Child,Britney Spears,Christina Aguilera,Eminem,Jay-Z,Kanye West,Kendrick Lamar,Post Malone,The Weeknd,Bruno Mars,Dua Lipa,Miley Cyrus,Katy Perry,Shakira,Jennifer Lopez,Whitney Houston,Mariah Carey,Celine Dion,Elton John,Billy Joel,Stevie Wonder,Frank Sinatra,Johnny Cash,Willie Nelson,Garth Brooks,Shania Twain,Carrie Underwood,Luke Combs,Morgan Wallen,Fleetwood Mac,ABBA,Bee Gees,Journey,Aerosmith,Guns N' Roses,Imagine Dragons,Maroon 5,BTS,Blackpink,Daft Punk"},
+"Sports":{em:"🏀",items:"Basketball,Football,Soccer,Baseball,Hockey,Tennis,Golf,Boxing,Wrestling,Swimming,Diving,Gymnastics,Figure Skating,Skiing,Snowboarding,Surfing,Skateboarding,Volleyball,Beach Volleyball,Badminton,Table Tennis,Cricket,Rugby,Lacrosse,Fencing,Archery,Bowling,Curling,Rowing,Sailing,Cycling,Marathon,Triathlon,Pole Vault,High Jump,Shot Put,Javelin,Hurdles,Pickleball,Racquetball,Water Polo,Polo,Horse Racing,NASCAR,Formula 1,Bobsled,Luge,Biathlon,Rock Climbing,Judo,Karate,Taekwondo,Sumo Wrestling,Darts,Billiards,Ultimate Frisbee,Dodgeball,Cheerleading,Weightlifting,CrossFit"},
+"Athletes":{em:"🏆",items:"Michael Jordan,LeBron James,Kobe Bryant,Stephen Curry,Shaquille O'Neal,Tom Brady,Patrick Mahomes,Peyton Manning,Travis Kelce,Aaron Rodgers,Lionel Messi,Cristiano Ronaldo,David Beckham,Pelé,Megan Rapinoe,Serena Williams,Roger Federer,Rafael Nadal,Novak Djokovic,Coco Gauff,Tiger Woods,Scottie Scheffler,Rory McIlroy,Usain Bolt,Michael Phelps,Simone Biles,Katie Ledecky,Wayne Gretzky,Sidney Crosby,Babe Ruth,Derek Jeter,Shohei Ohtani,Aaron Judge,Muhammad Ali,Mike Tyson,Floyd Mayweather,Conor McGregor,Tony Hawk,Shaun White,Lindsey Vonn,Caitlin Clark,Angel Reese,Giannis Antetokounmpo,Nikola Jokić,Luka Dončić,Victor Wembanyama,Lamar Jackson,Josh Allen,Deion Sanders,Jackie Robinson"},
+"Foods":{em:"🍕",items:"Pizza,Hamburger,Hot Dog,Tacos,Burrito,Sushi,Ramen,Pad Thai,Spaghetti,Lasagna,Mac and Cheese,Grilled Cheese,Pancakes,Waffles,French Toast,Bagel,Croissant,Donut,Cupcake,Cheesecake,Apple Pie,Ice Cream,Milkshake,Nachos,Guacamole,Chicken Wings,Fried Chicken,Steak,Lobster,Shrimp Cocktail,Caesar Salad,Chili,Clam Chowder,Pho,Dumplings,Fried Rice,Egg Rolls,Curry,Falafel,Hummus,Gyro,Quesadilla,Enchiladas,Churros,Pretzel,Popcorn,Cotton Candy,Corn Dog,Funnel Cake,Peanut Butter and Jelly,Meatloaf,Mashed Potatoes,Baked Beans,Cornbread,Biscuits and Gravy,Oatmeal,Cereal,Avocado Toast,Caprese Salad,Risotto,Tiramisu,Crème Brûlée,Macarons,Pierogi,Jambalaya"},
+"Countries":{em:"🌍",items:"United States,Canada,Mexico,Brazil,Argentina,Chile,Peru,Colombia,United Kingdom,Ireland,France,Germany,Italy,Spain,Portugal,Netherlands,Belgium,Switzerland,Austria,Sweden,Norway,Denmark,Finland,Iceland,Poland,Greece,Turkey,Egypt,Morocco,South Africa,Kenya,Nigeria,Ethiopia,Saudi Arabia,United Arab Emirates,Israel,India,Pakistan,China,Japan,South Korea,North Korea,Vietnam,Thailand,Philippines,Indonesia,Malaysia,Singapore,Australia,New Zealand,Russia,Ukraine,Cuba,Jamaica,Bahamas,Costa Rica,Panama,Iran,Iraq,Afghanistan,Mongolia,Nepal,Madagascar,Fiji"},
+"US Cities":{em:"🏙️",items:"New York City,Los Angeles,Chicago,Houston,Phoenix,Philadelphia,San Antonio,San Diego,Dallas,Austin,San Francisco,Seattle,Denver,Boston,Nashville,Las Vegas,Miami,Atlanta,Washington DC,New Orleans,Portland,Detroit,Minneapolis,Cleveland,Pittsburgh,Baltimore,Charlotte,Orlando,Tampa,St. Louis,Kansas City,Salt Lake City,Honolulu,Anchorage,Memphis,Milwaukee,Indianapolis,Columbus,Cincinnati,Buffalo,Albuquerque,Santa Fe,Savannah,Charleston,Boise,Tucson,Sacramento,Oakland,Hoboken,Jersey City,Newark,Yonkers,Albany,Providence,Hartford,Burlington,Louisville,Birmingham,Oklahoma City,Omaha"},
+"Landmarks":{em:"🗽",items:"Eiffel Tower,Statue of Liberty,Great Wall of China,Taj Mahal,Pyramids of Giza,Colosseum,Big Ben,Golden Gate Bridge,Mount Rushmore,Grand Canyon,Niagara Falls,Stonehenge,Machu Picchu,Christ the Redeemer,Sydney Opera House,Leaning Tower of Pisa,Empire State Building,Hollywood Sign,Times Square,White House,Buckingham Palace,Louvre,Notre-Dame,Acropolis,Burj Khalifa,Petra,Angkor Wat,Mount Everest,Mount Fuji,Yellowstone,Old Faithful,Space Needle,Gateway Arch,Alamo,Las Vegas Strip,Brooklyn Bridge,Central Park,Disney World,Hoover Dam,Mount Kilimanjaro,Great Barrier Reef,Victoria Falls,Chichen Itza,Easter Island,Kremlin,Tower of London,Sagrada Familia,Blue Lagoon,Northern Lights,Area 51"},
+"Brands":{em:"🛍️",items:"Apple,Google,Amazon,Nike,Adidas,Coca-Cola,Pepsi,McDonald's,Starbucks,Disney,Netflix,Tesla,Ford,Toyota,Lego,Barbie,Gucci,Louis Vuitton,Rolex,IKEA,Target,Walmart,Costco,Home Depot,Chick-fil-A,Taco Bell,Wendy's,Burger King,Dunkin',Oreo,Doritos,Cheetos,Pringles,Kraft,Heinz,Kellogg's,Gatorade,Red Bull,Monster,Budweiser,Jack Daniel's,Marlboro,Crocs,Vans,Converse,Levi's,Ray-Ban,Oakley,Patagonia,North Face,Lululemon,Peloton,Uber,Airbnb,Spotify,TikTok,Instagram,Facebook,YouTube,Microsoft,Samsung,Sony,Nintendo,PlayStation,Xbox,Hershey's,M&M's,Snickers,Kit Kat,Ben & Jerry's"},
+"Jobs":{em:"👩‍🚒",items:"Doctor,Nurse,Dentist,Surgeon,Veterinarian,Firefighter,Police Officer,Detective,Lawyer,Judge,Teacher,Professor,Librarian,Chef,Baker,Bartender,Waiter,Barista,Farmer,Fisherman,Pilot,Flight Attendant,Astronaut,Scientist,Engineer,Architect,Plumber,Electrician,Carpenter,Mechanic,Truck Driver,Taxi Driver,Mail Carrier,Garbage Collector,Janitor,Lifeguard,Personal Trainer,Yoga Instructor,Hair Stylist,Tattoo Artist,Photographer,Actor,Musician,DJ,Comedian,Magician,Clown,Mime,Ballerina,Painter,Sculptor,Writer,Journalist,News Anchor,Weather Forecaster,Accountant,Banker,Real Estate Agent,Stockbroker,Pharmacist,Therapist,Dog Walker,Zookeeper,Park Ranger,Soldier,Spy,Referee,Coach,Cashier,Influencer"},
+"Superheroes & Villains":{em:"🦸",items:"Superman,Batman,Wonder Woman,Spider-Man,Iron Man,Captain America,Thor,Hulk,Black Widow,Hawkeye,Black Panther,Doctor Strange,Ant-Man,Wolverine,Deadpool,Aquaman,The Flash,Green Lantern,Robin,Catwoman,Harley Quinn,The Joker,Lex Luthor,Thanos,Loki,Magneto,Venom,Green Goblin,Doctor Octopus,Captain Marvel,Scarlet Witch,Vision,Groot,Rocket Raccoon,Star-Lord,Gamora,Storm,Cyclops,Professor X,Mystique,Daredevil,The Punisher,Jessica Jones,Shazam,Supergirl,Batgirl,Nightwing,Bane,Two-Face,Penguin,Riddler,Poison Ivy,Mr. Freeze,Hellboy,The Incredibles,Elastigirl,Frozone,Invincible,Homelander,Omni-Man"},
+"Video Games":{em:"🎮",items:"Mario,Luigi,Princess Peach,Bowser,Yoshi,Donkey Kong,Link,Zelda,Pikachu,Charizard,Sonic the Hedgehog,Pac-Man,Tetris,Minecraft,Fortnite,Roblox,Among Us,Call of Duty,Halo,Grand Theft Auto,The Sims,Animal Crossing,Pokémon,Mario Kart,Super Smash Bros,Street Fighter,Mortal Kombat,Final Fantasy,Kirby,Mega Man,Crash Bandicoot,Spyro,Lara Croft,Master Chief,Kratos,Sub-Zero,Scorpion,Ryu,Chun-Li,Samus,Metroid,Space Invaders,Frogger,Donkey Kong Country,Candy Crush,Angry Birds,Flappy Bird,Wii Sports,Just Dance,Guitar Hero,Rock Band,Overwatch,League of Legends,Elden Ring,Dark Souls,The Last of Us,Red Dead Redemption,Skyrim,Fallout,Portal,Half-Life,Doom,Wordle,Solitaire,Minesweeper"},
+"Cartoon Characters":{em:"🧽",items:"Mickey Mouse,Minnie Mouse,Donald Duck,Goofy,Bugs Bunny,Daffy Duck,Tweety,Road Runner,Wile E. Coyote,Scooby-Doo,Shaggy,Fred Flintstone,George Jetson,Tom and Jerry,Pink Panther,Popeye,Homer Simpson,Bart Simpson,Lisa Simpson,Peter Griffin,Stewie Griffin,Eric Cartman,SpongeBob,Patrick Star,Squidward,Mr. Krabs,Plankton,Dora the Explorer,Peppa Pig,Bluey,Paw Patrol,Arthur,Caillou,Rugrats,Doug,Hey Arnold,Dexter,Powerpuff Girls,Johnny Bravo,Courage the Cowardly Dog,Ed Edd n Eddy,Kim Possible,Phineas and Ferb,Gravity Falls,Steven Universe,Adventure Time,Finn and Jake,Avatar Aang,Rick Sanchez,Morty,Bender,Snoopy,Charlie Brown,Garfield,Pokémon Ash,Naruto,Goku,Sailor Moon,Totoro,Pikachu,Elsa,Olaf,Woody,Buzz Lightyear,Shrek,Donkey,Minion,Grinch"},
+"Household Objects":{em:"🛋️",items:"Toaster,Microwave,Refrigerator,Dishwasher,Blender,Coffee Maker,Kettle,Frying Pan,Spatula,Whisk,Rolling Pin,Cutting Board,Can Opener,Corkscrew,Colander,Vacuum Cleaner,Broom,Mop,Dustpan,Iron,Ironing Board,Washing Machine,Dryer,Hair Dryer,Toothbrush,Toilet Plunger,Shower Curtain,Bath Mat,Towel,Pillow,Blanket,Mattress,Alarm Clock,Lamp,Light Bulb,Candle,Curtains,Doormat,Umbrella,Ladder,Hammer,Screwdriver,Tape Measure,Flashlight,Remote Control,Television,Couch,Recliner,Bookshelf,Coat Hanger,Laundry Basket,Trash Can,Scissors,Stapler,Paper Clip,Thermostat,Smoke Detector,Fire Extinguisher,Doorbell,Garden Hose,Lawn Mower,Wheelbarrow,Bird Feeder,Mailbox"},
+"Act It Out":{em:"🎭",items:"Brushing teeth,Riding a bike,Swimming,Playing guitar,Flying a kite,Changing a diaper,Walking a dog,Milking a cow,Surfing,Juggling,Making pancakes,Eating spaghetti,Sneezing,Yawning,Hiccups,Tying shoes,Shoveling snow,Mowing the lawn,Doing laundry,Washing dishes,Taking a selfie,Texting,Driving a car,Parallel parking,Riding a horse,Bowling,Shooting a free throw,Golf swing,Casting a fishing line,Chopping wood,Climbing a ladder,Opening a stuck jar,Putting on makeup,Shaving,Brushing hair,Blowing out candles,Unwrapping a gift,Building a snowman,Jumping rope,Hula hooping,Moonwalk,The Floss,Robot dance,Playing piano,Playing drums,Conducting an orchestra,Karate chop,Boxing,Lifting weights,Yoga,Meditating,Sleeping,Snoring,Crying baby,Proposing marriage,Walking a tightrope,Mime in a box,Walking into glass door,Slipping on a banana,Stuck in an elevator"},
+"Accents & Impressions":{em:"🗣️",items:"British accent,Australian accent,Irish accent,Scottish accent,Southern drawl,New York accent,Boston accent,Minnesota accent,Canadian accent,French accent,Italian accent,German accent,Russian accent,Jamaican accent,Valley girl,Surfer dude,Pirate,Cowboy,Robot,Alien,Vampire,Zombie,Frankenstein's monster,Ghost,Witch,Santa Claus,Elf,Yoda,Darth Vader,Chewbacca,Gollum,Austin Powers,Borat,Arnold Schwarzenegger,Christopher Walken,Morgan Freeman,Sean Connery,Jack Nicholson,Donald Duck,Mickey Mouse,SpongeBob,Elmo,Cookie Monster,Kermit the Frog,Homer Simpson,Cartman,Scooby-Doo,Bane,Joker,Gordon Ramsay,Opera singer,Auctioneer,Sports announcer,Game show host,Weather forecaster,Drill sergeant,Kindergarten teacher,Angry customer,Telemarketer,Fortune teller,Hypnotist,Cheerleader,Toddler,Grumpy old man"},
+"Holidays & Celebrations":{em:"🎉",items:"Christmas,Hanukkah,Kwanzaa,New Year's Eve,Valentine's Day,St. Patrick's Day,Easter,Mother's Day,Father's Day,Fourth of July,Halloween,Thanksgiving,Birthday,Wedding,Baby Shower,Bachelor Party,Graduation,Prom,Super Bowl Sunday,Mardi Gras,Cinco de Mayo,Diwali,Ramadan,Lunar New Year,Oktoberfest,Groundhog Day,April Fools' Day,Earth Day,Labor Day,Memorial Day,Veterans Day,Black Friday,Cyber Monday,Boxing Day,Day of the Dead,Carnival,Burning Man,Coachella,Olympics,World Cup,Retirement Party,Housewarming,Anniversary,Family Reunion,Tailgate,Block Party,Pool Party,Slumber Party,Surprise Party,Gender Reveal"},
+"Science & Nature":{em:"🔬",items:"Gravity,Black Hole,Volcano,Earthquake,Tornado,Hurricane,Tsunami,Lightning,Rainbow,Solar Eclipse,Full Moon,Milky Way,Big Bang,Dinosaur,Fossil,Photosynthesis,DNA,Atom,Molecule,Electricity,Magnet,Microscope,Telescope,Rocket,Satellite,Space Station,Mars,Jupiter,Saturn's Rings,Comet,Meteor,Asteroid,Evolution,Bacteria,Virus,Vaccine,Skeleton,Heart,Brain,Lungs,Glacier,Iceberg,Desert,Rainforest,Coral Reef,Waterfall,Geyser,Cave,Quicksand,Avalanche,Periodic Table,Chemistry Set,Lab Coat,Albert Einstein,Isaac Newton,Marie Curie,Charles Darwin,Galileo,Bill Nye,Neil deGrasse Tyson,Robot,Artificial Intelligence,Laser,X-Ray,Nuclear Reactor,Wind Turbine,Solar Panel,Electric Car"},
+"Musical Instruments":{em:"🎺",items:"Guitar,Electric Guitar,Bass Guitar,Piano,Keyboard,Drums,Violin,Viola,Cello,Double Bass,Flute,Clarinet,Oboe,Bassoon,Saxophone,Trumpet,Trombone,Tuba,French Horn,Harmonica,Accordion,Banjo,Ukulele,Mandolin,Harp,Xylophone,Marimba,Triangle,Tambourine,Maracas,Bongos,Congas,Cowbell,Bagpipes,Didgeridoo,Sitar,Kazoo,Recorder,Organ,Synthesizer,Turntables,Steel Drums,Gong,Cymbals,Castanets,Theremin,Jaw Harp,Ocarina,Pan Flute,Bells"},
+"Dog Breeds":{em:"🐶",items:"Golden Retriever,Labrador,German Shepherd,Poodle,Bulldog,French Bulldog,Beagle,Dachshund,Chihuahua,Pug,Boxer,Rottweiler,Doberman,Great Dane,Saint Bernard,Husky,Malamute,Corgi,Shih Tzu,Pomeranian,Yorkshire Terrier,Jack Russell,Border Collie,Australian Shepherd,Dalmatian,Basset Hound,Bloodhound,Greyhound,Whippet,Cocker Spaniel,Springer Spaniel,Maltese,Bichon Frise,Chow Chow,Shar Pei,Akita,Shiba Inu,Newfoundland,Bernese Mountain Dog,Pit Bull,Mastiff,Weimaraner,Irish Setter,Pointer,Goldendoodle,Labradoodle,Cockapoo,Schnauzer,Scottish Terrier,Westie,Papillon,Pekingese,Lhasa Apso,Afghan Hound,Samoyed,Great Pyrenees"},
+"Car Brands & Models":{em:"🚗",items:"Ford Mustang,Chevrolet Corvette,Dodge Charger,Jeep Wrangler,Toyota Camry,Toyota Prius,Honda Civic,Honda Accord,Tesla Model 3,Tesla Cybertruck,BMW,Mercedes-Benz,Audi,Porsche 911,Ferrari,Lamborghini,Bugatti,Rolls-Royce,Bentley,Aston Martin,Jaguar,Land Rover,Range Rover,Mini Cooper,Volkswagen Beetle,Volkswagen Bus,Subaru Outback,Nissan Altima,Hyundai,Kia,Mazda Miata,Cadillac Escalade,Lincoln,Chrysler,Hummer,DeLorean,Batmobile,Ford F-150,Chevy Silverado,Ram 1500,Toyota Tacoma,Rivian,Lucid,Volvo,Saab,Fiat 500,Alfa Romeo,Maserati,McLaren,Lexus,Acura,Infiniti,Buick,GMC,Pontiac,Oldsmobile,Smart Car,Golf Cart,Monster Truck,School Bus"},
+"90s Nostalgia":{em:"📼",items:"Tamagotchi,Furby,Beanie Babies,Pogs,Game Boy,Nintendo 64,Sega Genesis,Walkman,Discman,Dial-up Internet,AOL,Floppy Disk,VHS Tape,Blockbuster,Pokémon Cards,Power Rangers,Rugrats,Hey Arnold,Boy Meets World,Saved by the Bell,Full House,Fresh Prince,Friends,Seinfeld,Dawson's Creek,Buffy the Vampire Slayer,Titanic,Jurassic Park,Space Jam,Home Alone,Toy Story,The Lion King,Spice Girls,Backstreet Boys,NSYNC,Britney Spears,Nirvana,TLC,Macarena,Super Soaker,Slap Bracelets,Butterfly Clips,Scrunchies,Frosted Tips,JNCO Jeans,Lisa Frank,Trapper Keeper,Gak,Skip-It,Bop It,Lite-Brite,Easy-Bake Oven,Dunkaroos,Lunchables,Gushers,Capri Sun,Surge,Crystal Pepsi,Y2K"},
+"Board Games & Toys":{em:"🎲",items:"Monopoly,Scrabble,Chess,Checkers,Clue,Risk,Battleship,Connect Four,Candy Land,Chutes and Ladders,Operation,Trouble,Sorry,Life,Twister,Jenga,Uno,Yahtzee,Pictionary,Charades,Trivial Pursuit,Cards Against Humanity,Catan,Ticket to Ride,Codenames,Dungeons & Dragons,Guess Who,Hungry Hungry Hippos,Mouse Trap,Perfection,Rubik's Cube,Etch A Sketch,Play-Doh,Slinky,Yo-Yo,Hot Wheels,Nerf Gun,Mr. Potato Head,Lego,Lincoln Logs,Barbie,G.I. Joe,Teddy Bear,Rocking Horse,Pogo Stick,Hopscotch,Dominoes,Poker,Blackjack,Go Fish,Spoons,Bingo,Mahjong,Backgammon,Cornhole,Ping Pong,Foosball,Air Hockey"},
+"Famous Fictional Characters":{em:"📚",items:"Harry Potter,Hermione Granger,Ron Weasley,Voldemort,Dumbledore,Hagrid,Gandalf,Frodo,Gollum,Bilbo Baggins,Katniss Everdeen,Sherlock Holmes,Dracula,James Bond,Indiana Jones,Luke Skywalker,Darth Vader,Yoda,Han Solo,Princess Leia,Jack Sparrow,Forrest Gump,Rocky Balboa,Rambo,The Terminator,Marty McFly,Doc Brown,Ferris Bueller,Willy Wonka,Mary Poppins,Peter Pan,Captain Hook,Tinker Bell,Cinderella,Snow White,Ariel,Belle,Jasmine,Mulan,Pocahontas,Simba,Nemo,Dory,Lightning McQueen,Mr. Incredible,Wall-E,Woody,Buzz Lightyear,Shrek,Puss in Boots,Winnie the Pooh,Tigger,Paddington,Pinocchio,Alice in Wonderland,Dorothy,Wicked Witch,Tin Man,Scarecrow,Cowardly Lion,Robin Hood,King Arthur,Tarzan,Hercules,Zorro,Scrooge,Grinch,Frankenstein,Godzilla,King Kong,Chucky,Freddy Krueger,Jason Voorhees,Michael Myers,Hannibal Lecter,Jack Torrance,Walter White,Tony Soprano,Michael Scott,Ron Swanson"},
+"Emotions & Faces":{em:"😂",items:"Happy,Sad,Angry,Surprised,Scared,Disgusted,Confused,Bored,Excited,Nervous,Embarrassed,Jealous,In Love,Heartbroken,Proud,Shy,Sleepy,Exhausted,Hungry,Thirsty,Cold,Hot,Itchy,In Pain,Dizzy,Nauseous,Suspicious,Smug,Guilty,Relieved,Grateful,Grumpy,Giddy,Hysterical laughing,Ugly crying,Fake smile,Eye roll,Poker face,Puppy eyes,Duck face,Stink eye,Side eye,Wink,Blown mind,Evil laugh,Nervous laugh,Pout,Gasp,Sneeze face,Brain freeze"},
+"Things at the Beach":{em:"🏖️",items:"Sandcastle,Seashell,Seagull,Sunscreen,Sunburn,Beach Towel,Beach Umbrella,Beach Chair,Cooler,Boogie Board,Surfboard,Paddleboard,Jet Ski,Kayak,Snorkel,Flippers,Goggles,Lifeguard,Lifeguard Tower,Boardwalk,Pier,Lighthouse,Sailboat,Cruise Ship,Dolphin,Jellyfish,Crab,Starfish,Sand Dollar,Seaweed,Tide Pool,Wave,Riptide,Tan Lines,Flip Flops,Sunglasses,Sun Hat,Bikini,Swim Trunks,Beach Ball,Frisbee,Volleyball Net,Metal Detector,Ice Cream Truck,Tiki Bar,Bonfire,Sunset,Palm Tree,Coconut,Hammock"},
+"Occupation Tools":{em:"🧰",items:"Stethoscope,Scalpel,Syringe,Thermometer,Gavel,Handcuffs,Badge,Fire Hose,Fire Truck,Chalkboard,Whistle,Clipboard,Calculator,Briefcase,Hard Hat,Blueprint,Wrench,Drill,Chainsaw,Paintbrush,Easel,Camera,Microphone,Headphones,Guitar Pick,Drumsticks,Chef's Knife,Apron,Rolling Pin,Tractor,Pitchfork,Fishing Rod,Anchor,Compass,Map,Telescope,Microscope,Beaker,Test Tube,Lab Goggles,Spacesuit,Parachute,Pilot Wings,Steering Wheel,Taxi Meter,Mailbag,Toolbox,Ladder,Lawn Mower,Shovel,Rake,Scissors,Comb,Hair Dryer,Tattoo Gun,Magic Wand,Top Hat,Juggling Balls,Megaphone,Referee Flag"}
+};
+
+/* ===================== LIVE DECKS (public APIs) ===================== */
+const OTDB = (id,fb)=>async()=>{
+  const r=await fetch(`https://opentdb.com/api.php?amount=50&category=${id}&type=multiple`);
+  const j=await r.json(); if(!j.results||!j.results.length) throw new Error("empty");
+  const out=[]; for(const q of j.results){ out.push(q.correct_answer, ...q.incorrect_answers); }
+  return out.map(decodeHTML).filter(goodWord);
+};
+const LIVE = {
+  "Film (OpenTDB)":{em:"🎥",fb:"Movies",fn:OTDB(11)},
+  "Music (OpenTDB)":{em:"🎵",fb:"Musicians & Bands",fn:OTDB(12)},
+  "TV (OpenTDB)":{em:"📡",fb:"TV Shows",fn:OTDB(14)},
+  "Video Games (OpenTDB)":{em:"🕹️",fb:"Video Games",fn:OTDB(15)},
+  "Celebrities (OpenTDB)":{em:"🌟",fb:"Celebrities",fn:OTDB(26)},
+  "Geography (OpenTDB)":{em:"🗺️",fb:"Countries",fn:OTDB(22)},
+  "History (OpenTDB)":{em:"🏛️",fb:"Landmarks",fn:OTDB(23)},
+  "Mythology (OpenTDB)":{em:"⚡",fb:"Famous Fictional Characters",fn:OTDB(20)},
+  "Cartoons & Anime (OpenTDB)":{em:"🍥",fb:"Cartoon Characters",fn:OTDB(32)},
+  "Sports (OpenTDB)":{em:"⚽",fb:"Sports",fn:OTDB(21)},
+  "Books (OpenTDB)":{em:"📖",fb:"Famous Fictional Characters",fn:OTDB(10)},
+  "Every Pokémon (PokéAPI)":{em:"🔴",fb:"Video Games",fn:async()=>{
+      const j=await (await fetch("https://pokeapi.co/api/v2/pokemon?limit=1025")).json();
+      return j.results.map(p=>p.name.split("-").map(cap).join(" "));
+  }},
+  "World Countries (REST Countries)":{em:"🌐",fb:"Countries",fn:async()=>{
+      const j=await (await fetch("https://restcountries.com/v3.1/all?fields=name")).json();
+      return j.map(c=>c.name.common);
+  }},
+  "World Dishes (TheMealDB)":{em:"🍛",fb:"Foods",fn:async()=>{
+      const letters=shuffle("abcdefghijklmnoprstvw".split("")).slice(0,5);
+      const res=await Promise.all(letters.map(l=>fetch(`https://www.themealdb.com/api/json/v1/1/search.php?f=${l}`).then(r=>r.json()).catch(()=>({meals:null}))));
+      return res.flatMap(j=>(j.meals||[]).map(m=>m.strMeal));
+  }},
+  "Cocktails (TheCocktailDB)":{em:"🍸",fb:"Foods",fn:async()=>{
+      const j=await (await fetch("https://www.thecocktaildb.com/api/json/v1/1/filter.php?a=Alcoholic")).json();
+      return j.drinks.map(d=>d.strDrink);
+  }},
+  "All Dog Breeds (Dog CEO)":{em:"🐕",fb:"Dog Breeds",fn:async()=>{
+      const j=await (await fetch("https://dog.ceo/api/breeds/list/all")).json();
+      const out=[]; for(const [b,subs] of Object.entries(j.message)){ if(subs.length) subs.forEach(s=>out.push(cap(s)+" "+cap(b))); else out.push(cap(b)); }
+      return out;
+  }},
+};
+async function datamuseDeck(topic){
+  const t=encodeURIComponent(topic);
+  const [a,b]=await Promise.all([
+    fetch(`https://api.datamuse.com/words?ml=${t}&topics=${t}&max=150`).then(r=>r.json()),
+    fetch(`https://api.datamuse.com/words?rel_trg=${t}&max=100`).then(r=>r.json()).catch(()=>[])
+  ]);
+  const seen=new Set(); const out=[];
+  for(const w of [...a,...b]){ const s=w.word.trim(); const k=s.toLowerCase(); if(seen.has(k)||k===topic.toLowerCase()||!goodWord(s)) continue; seen.add(k); out.push(s.split(" ").map(cap).join(" ")); }
+  if(out.length<10) throw new Error("too few");
+  return out;
+}
+
+/* ===================== HELPERS ===================== */
+const $=s=>document.querySelector(s);
+const cap=s=>s? s.charAt(0).toUpperCase()+s.slice(1):s;
+function decodeHTML(s){const t=document.createElement("textarea");t.innerHTML=s;return t.value;}
+function goodWord(s){ if(!s) return false; s=s.trim(); if(s.length<2||s.length>34) return false; if(/^[\d\s.,%$-]+$/.test(s)) return false; if(/^(true|false|none of the above|all of the above)$/i.test(s)) return false; return true; }
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+let toastT; function toast(m,ms=2600){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),ms);}
+function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("active",s.id===id));}
+const store={get(k,d){try{const v=localStorage.getItem("tg_"+k);return v==null?d:JSON.parse(v);}catch(e){return d;}},set(k,v){try{localStorage.setItem("tg_"+k,JSON.stringify(v));}catch(e){}}};
+
+/* ===================== SETTINGS ===================== */
+let roundLen=store.get("len",60), sound=store.get("sound",true), tapMode=store.get("tap",false);
+function paintSettings(){
+  document.querySelectorAll(".tlen").forEach(p=>p.classList.toggle("on",+p.dataset.s===roundLen));
+  $("#soundPill").classList.toggle("on",sound); $("#tapPill").classList.toggle("on",tapMode);
+}
+document.querySelectorAll(".tlen").forEach(p=>p.onclick=()=>{roundLen=+p.dataset.s;store.set("len",roundLen);paintSettings();});
+$("#soundPill").onclick=()=>{sound=!sound;store.set("sound",sound);paintSettings();};
+$("#tapPill").onclick=()=>{tapMode=!tapMode;store.set("tap",tapMode);paintSettings();toast(tapMode?"Tap mode on: tap right = got it, left = pass":"Tilt mode on");};
+paintSettings();
+
+/* ===================== HOME GRID ===================== */
+const bankNames=Object.keys(BANK);
+const bankArr=n=>BANK[n].items.split(",").map(s=>s.trim()).filter(Boolean);
+$("#bankCount").textContent=bankNames.reduce((n,k)=>n+bankArr(k).length,0);
+function card(em,nm,ct,cls,onclick){const d=document.createElement("div");d.className="cat "+(cls||"");d.innerHTML=`<div class="em">${em}</div><div class="nm">${nm}</div><div class="ct">${ct}</div>`;d.onclick=onclick;return d;}
+const g=$("#catGrid");
+g.appendChild(card("🎲","Random deck","Picks any built-in or live deck","random",()=>{
+  const all=[...bankNames.map(n=>({t:"bank",n})),...Object.keys(LIVE).map(n=>({t:"live",n}))];
+  const p=all[Math.floor(Math.random()*all.length)]; p.t==="bank"?startBank(p.n):startLive(p.n);
+}));
+g.appendChild(card("🌀","Mega mix","Every built-in deck shuffled together","",()=>startDeck("Mega mix",shuffle(bankNames.flatMap(bankArr)))));
+for(const [n,v] of Object.entries(LIVE)) $("#liveGrid").appendChild(card(v.em,n,"fetches fresh cards","live",()=>startLive(n)));
+for(const n of bankNames) $("#builtinGrid").appendChild(card(BANK[n].em,n,bankArr(n).length+" cards","",()=>startBank(n)));
+$("#customGo").onclick=()=>{const t=$("#customTopic").value.trim(); if(!t) return toast("Type a topic first"); startCustom(t);};
+$("#customTopic").addEventListener("keydown",e=>{if(e.key==="Enter")$("#customGo").click();});
+
+/* ===================== START FLOWS ===================== */
+let lastStart=null;
+function startBank(n){ lastStart=()=>startBank(n); startDeck(n,shuffle(bankArr(n))); }
+async function startLive(n){
+  lastStart=()=>startLive(n);
+  const v=LIVE[n]; enterStage(); showLoading("Fetching "+n+"…");
+  try{ const words=await withTimeout(v.fn(),8000); const uniq=[...new Set(words)]; if(uniq.length<8) throw new Error("few"); runRound(n,shuffle(uniq)); }
+  catch(e){ toast("Couldn't reach that API here — using built-in "+v.fb+" deck"); runRound(v.fb,shuffle(bankArr(v.fb))); }
+}
+async function startCustom(t){
+  lastStart=()=>startCustom(t);
+  enterStage(); showLoading("Building a deck about “"+t+"”…");
+  try{ const words=await withTimeout(datamuseDeck(t),8000); runRound("Topic: "+t,shuffle(words)); }
+  catch(e){ toast("Couldn't reach Datamuse here — try a built-in deck"); show("home"); }
+}
+function startDeck(n,words){ lastStart=()=>startDeck(n,shuffle(words)); enterStage(); runRound(n,words); }
+function withTimeout(p,ms){return Promise.race([p,new Promise((_,r)=>setTimeout(()=>r(new Error("timeout")),ms))]);}
+
+/* ===================== STAGE / ROTATION ===================== */
+function enterStage(){ show("play"); layout(); tryFullscreen(); wake(); initAudio(); }
+function layout(){
+  const r=$("#rot"), W=innerWidth, H=innerHeight;
+  if(H>W){ r.style.width=H+"px"; r.style.height=W+"px"; r.style.transform=`translate(${W}px,0) rotate(90deg)`; }
+  else{ r.style.width=W+"px"; r.style.height=H+"px"; r.style.transform="none"; }
+}
+addEventListener("resize",layout); addEventListener("orientationchange",()=>setTimeout(layout,120));
+function tryFullscreen(){ try{ const d=document.documentElement; (d.requestFullscreen||d.webkitRequestFullscreen)?.call(d)?.catch?.(()=>{}); }catch(e){} }
+let wl=null; async function wake(){ try{ if(navigator.wakeLock&&!wl){ wl=await navigator.wakeLock.request("screen"); wl.addEventListener("release",()=>wl=null);} }catch(e){} }
+function showLoading(msg){ $("#word").innerHTML=`<div class="loader"><div class="spin"></div><div>${msg}</div></div>`; $("#hint").textContent=""; $("#timer").textContent=""; $("#scoreLbl").textContent=""; $("#catLabel").textContent=""; }
+
+/* ===================== AUDIO ===================== */
+let AC=null; function initAudio(){ try{ if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==="suspended") AC.resume(); }catch(e){} }
+function beep(f,d=.12,type="sine",vol=.25){ if(!sound||!AC) return; try{ const o=AC.createOscillator(), g=AC.createGain(); o.type=type; o.frequency.value=f; g.gain.value=vol; o.connect(g); g.connect(AC.destination); o.start(); g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+d); o.stop(AC.currentTime+d); }catch(e){} }
+const sfx={ good(){beep(660,.1);setTimeout(()=>beep(990,.15),90);}, pass(){beep(220,.2,"square",.15);}, tick(){beep(880,.05,"square",.08);}, end(){beep(523,.15);setTimeout(()=>beep(392,.15),150);setTimeout(()=>beep(262,.35),300);}, go(){beep(784,.25);} };
+
+/* ===================== SENSORS ===================== */
+let sensorOK=false, sensorHandler=null;
+async function enableMotion(){
+  if(tapMode) return false;
+  try{
+    if(typeof DeviceMotionEvent!=="undefined" && typeof DeviceMotionEvent.requestPermission==="function"){
+      const p=await DeviceMotionEvent.requestPermission(); if(p!=="granted") return false;
+    }
+  }catch(e){ return false; }
+  return new Promise(res=>{
+    let got=false;
+    const probe=e=>{ if(e.accelerationIncludingGravity&&e.accelerationIncludingGravity.z!=null){ got=true; } };
+    addEventListener("devicemotion",probe);
+    setTimeout(()=>{ removeEventListener("devicemotion",probe); res(got); },900);
+  });
+}
+/* Gravity on the screen-normal axis (z): phone on forehead facing the room ≈ 0.
+   Screen toward the floor (tilt down) → z strongly negative = GOT IT.
+   Screen toward the ceiling (tilt up) → z strongly positive = PASS. */
+function attachMotion(onDown,onUp){
+  let armed=true;
+  sensorHandler=e=>{
+    const a=e.accelerationIncludingGravity; if(!a||a.z==null) return;
+    const z=a.z, g=Math.hypot(a.x||0,a.y||0,a.z||0)||9.8, nz=z/g;
+    if(armed){ if(nz<-0.62){armed=false;onDown();} else if(nz>0.62){armed=false;onUp();} }
+    else if(Math.abs(nz)<0.35){ armed=true; }
+  };
+  addEventListener("devicemotion",sensorHandler);
+}
+function detachMotion(){ if(sensorHandler){ removeEventListener("devicemotion",sensorHandler); sensorHandler=null; } }
+
+/* ===================== ROUND ===================== */
+let state=null;
+async function runRound(name,words){
+  detachMotion();
+  const stage=$("#stage"), wordEl=$("#word"), hintEl=$("#hint"), timerEl=$("#timer");
+  $("#catLabel").textContent=name; $("#scoreLbl").textContent=""; timerEl.textContent="";
+  wordEl.innerHTML=`<div class="bigmsg">Get ready</div>`; hintEl.textContent="Requesting motion access…";
+  sensorOK=await enableMotion();
+  const useTap=!sensorOK;
+  $("#tapzones").classList.toggle("on",useTap);
+  hintEl.textContent=useTap?(tapMode?"Tap mode: right side = got it, left side = pass":"Motion sensors unavailable here — tap right = got it, left = pass"):"Place the phone on your forehead, screen facing your friends";
+  // countdown
+  for(const n of [3,2,1]){ wordEl.innerHTML=`<div class="bigmsg">${n}</div>`; sfx.tick(); await sleep(900); }
+  sfx.go();
+  state={name,words,idx:0,results:[],left:roundLen,done:false};
+  stage.className="flash-neutral";
+  const next=()=>{ if(state.idx>=state.words.length){ endRound(); return; } wordEl.textContent=state.words[state.idx]; hintEl.textContent=""; $("#scoreLbl").textContent="✓ "+state.results.filter(r=>r.ok).length; };
+  const mark=ok=>{ if(!state||state.done) return; state.results.push({w:state.words[state.idx],ok}); state.idx++; stage.className=ok?"flash-good":"flash-bad"; ok?sfx.good():sfx.pass(); wordEl.textContent=ok?"GOT IT!":"PASS"; setTimeout(()=>{ if(!state||state.done) return; stage.className="flash-neutral"; next(); },550); };
+  next();
+  if(useTap){ $("#tapzones").children[0].onclick=()=>mark(false); $("#tapzones").children[1].onclick=()=>mark(true); }
+  else attachMotion(()=>mark(true),()=>mark(false));
+  timerEl.textContent=state.left;
+  state.timer=setInterval(()=>{ if(!state) return; state.left--; timerEl.textContent=state.left; if(state.left<=5&&state.left>0) sfx.tick(); if(state.left<=0) endRound(); },1000);
+}
+function endRound(){
+  if(!state||state.done) return; state.done=true; clearInterval(state.timer); detachMotion(); sfx.end();
+  const s=state; $("#stage").className="";
+  const good=s.results.filter(r=>r.ok).length;
+  $("#resCat").textContent=s.name; $("#resScore").textContent=good+" correct";
+  $("#resSub").textContent=`${s.results.length-good} passed · ${s.results.length} cards seen`;
+  const list=$("#resList"); list.innerHTML="";
+  for(const r of s.results){ const d=document.createElement("div"); d.className="item "+(r.ok?"good":"bad"); d.innerHTML=`<span class="mark">${r.ok?"✓":"✗"}</span><span>${escapeHTML(r.w)}</span>`; list.appendChild(d); }
+  state=null; show("results");
+}
+$("#quitBtn").onclick=()=>{ if(state){ clearInterval(state.timer);} state=null; detachMotion(); $("#stage").className=""; show("home"); };
+$("#againBtn").onclick=()=>lastStart&&lastStart();
+$("#homeBtn").onclick=()=>show("home");
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function escapeHTML(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+</script>
+</body>
+</html>
