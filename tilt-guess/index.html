@@ -315,13 +315,24 @@ async function enableMotion(){
 /* Gravity on the screen-normal axis (z): phone on forehead facing the room ≈ 0.
    Screen toward the floor (tilt down) → z strongly negative = GOT IT.
    Screen toward the ceiling (tilt up) → z strongly positive = PASS. */
+/* Deliberate-tilt filter: smoothed gravity, a steep angle (~50°), held for HOLD_MS,
+   then a lockout, and the phone must come back near-level for REARM_MS before the next card counts. */
+const TILT=0.76, HOLD_MS=260, LOCK_MS=900, REARM_MS=220, LEVEL=0.30;
 function attachMotion(onDown,onUp){
-  let armed=true;
+  let armed=true, sm=0, dir=0, since=0, lockUntil=0, levelSince=0;
   sensorHandler=e=>{
     const a=e.accelerationIncludingGravity; if(!a||a.z==null) return;
-    const z=a.z, g=Math.hypot(a.x||0,a.y||0,a.z||0)||9.8, nz=z/g;
-    if(armed){ if(nz<-0.62){armed=false;onDown();} else if(nz>0.62){armed=false;onUp();} }
-    else if(Math.abs(nz)<0.35){ armed=true; }
+    const g=Math.hypot(a.x||0,a.y||0,a.z||0)||9.8, nz=a.z/g, now=performance.now();
+    sm=sm*0.7+nz*0.3;                       // low-pass: ignores jitter and quick flicks
+    if(now<lockUntil){ levelSince=0; return; }
+    if(!armed){                             // must settle back near level before re-arming
+      if(Math.abs(sm)<LEVEL){ if(!levelSince) levelSince=now; if(now-levelSince>REARM_MS){armed=true;dir=0;} }
+      else levelSince=0;
+      return;
+    }
+    const d = sm<-TILT ? -1 : sm>TILT ? 1 : 0;
+    if(d!==dir){ dir=d; since=now; return; }  // direction changed: restart the hold clock
+    if(d!==0 && now-since>=HOLD_MS){ armed=false; lockUntil=now+LOCK_MS; levelSince=0; d<0?onDown():onUp(); }
   };
   addEventListener("devicemotion",sensorHandler);
 }
